@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>แฟลชการ์ดคำศัพท์จีน</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;500&family=Noto+Sans+Thai:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f7f6f3;
+    --card:#ffffff;
+    --ink:#1c1c1c;
+    --muted:#8a8a85;
+    --line:#e6e4df;
+    --ok:#3f7d5c;
+    --no:#b5544a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Noto Sans Thai','Noto Sans SC',-apple-system,sans-serif;
+    background:var(--bg);color:var(--ink);
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:24px;
+  }
+  .app{width:100%;max-width:520px}
+
+  header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  h1{font-size:15px;font-weight:600;letter-spacing:.02em}
+  .counter{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+  .bar{height:3px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:26px}
+  .bar span{display:block;height:100%;width:0;background:var(--ink);transition:width .3s ease}
+
+  .scene{perspective:1400px;margin-bottom:22px}
+  .card{
+    position:relative;width:100%;height:320px;cursor:pointer;
+    transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,.2,.2,1);
+  }
+  .card.flipped{transform:rotateY(180deg)}
+  .face{
+    position:absolute;inset:0;backface-visibility:hidden;
+    background:var(--card);border:1px solid var(--line);border-radius:18px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:32px;box-shadow:0 1px 2px rgba(0,0,0,.04);
+  }
+  .face.back{transform:rotateY(180deg)}
+
+  .pinyin{font-size:30px;font-weight:300;letter-spacing:.04em;margin-bottom:16px}
+  .thai{font-size:19px;font-weight:400;line-height:1.6;color:#3a3a38}
+  .hanzi{font-family:'Noto Sans SC',serif;font-size:66px;font-weight:500;letter-spacing:.08em}
+  .hanzi-sub{font-size:14px;color:var(--muted);margin-top:18px;letter-spacing:.04em}
+  .hint{position:absolute;bottom:16px;font-size:11px;color:var(--muted);letter-spacing:.06em}
+
+  .actions{display:flex;gap:10px}
+  button{
+    font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
+    border:1px solid var(--line);background:var(--card);color:var(--ink);
+    padding:14px 0;border-radius:12px;flex:1;transition:.18s;
+  }
+  button:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.06)}
+  .btn-no{color:var(--no);border-color:#eddcd9}
+  .btn-ok{color:var(--ok);border-color:#d9e7df}
+
+  .toolbar{display:flex;justify-content:center;gap:18px;margin-top:20px}
+  .toolbar a{font-size:12px;color:var(--muted);cursor:pointer;text-decoration:none;border-bottom:1px solid transparent}
+  .toolbar a:hover{color:var(--ink);border-color:var(--line)}
+
+  .done{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:44px 32px;text-align:center}
+  .done h2{font-size:20px;font-weight:600;margin-bottom:22px}
+  .stats{display:flex;justify-content:center;gap:40px;margin-bottom:28px}
+  .stat b{display:block;font-size:30px;font-weight:300}
+  .stat span{font-size:12px;color:var(--muted)}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>แฟลชการ์ดคำศัพท์จีน</h1>
+    <div class="counter" id="counter">0 / 0</div>
+  </header>
+  <div class="bar"><span id="progress"></span></div>
+
+  <div id="study">
+    <div class="scene">
+      <div class="card" id="card">
+        <div class="face front">
+          <div class="pinyin" id="pinyin"></div>
+          <div class="thai" id="thai"></div>
+          <div class="hint">แตะเพื่อดูตัวจีน</div>
+        </div>
+        <div class="face back">
+          <div class="hanzi" id="hanzi"></div>
+          <div class="hanzi-sub" id="hanziSub"></div>
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-no" onclick="answer(false)">✕ จำไม่ได้</button>
+      <button class="btn-ok" onclick="answer(true)">✓ จำได้</button>
+    </div>
+    <div class="toolbar">
+      <a onclick="restart(true)">สุ่มใหม่</a>
+      <a onclick="restart(false)">เริ่มต้นใหม่</a>
+      <a onclick="flip()">พลิกการ์ด</a>
+    </div>
+  </div>
+
+  <div id="done" class="done hidden">
+    <h2>จบรอบแล้ว 🎉</h2>
+    <div class="stats">
+      <div class="stat"><b id="sOk">0</b><span>จำได้</span></div>
+      <div class="stat"><b id="sNo">0</b><span>จำไม่ได้</span></div>
+    </div>
+    <div class="actions">
+      <button id="againBtn" onclick="reviewMissed()">ทบทวนคำที่จำไม่ได้</button>
+      <button onclick="restart(true)">เริ่มใหม่ทั้งหมด</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const WORDS = [
+  ["严密","yánmì","เข้มงวด, รัดกุม, แน่นหนา"],
+  ["豆腐","dòufu","เต้าหู้"],
+  ["土豆","tǔdòu","มันฝรั่ง"],
+  ["豆浆","dòujiāng","น้ำเต้าหู้"],
+  ["豆子","dòuzi","ถั่ว"],
+  ["美丽","měilì","สวยงาม, งดงาม"],
+  ["壮丽","zhuànglì","สง่างาม, ตระการตา, ยิ่งใหญ่"],
+  ["避免","bìmiǎn","หลีกเลี่ยง, ป้องกัน"],
+  ["不免","bùmiǎn","หลีกเลี่ยงไม่ได้, ไม่พ้น"],
+  ["免得","miǎnde","เพื่อหลีกเลี่ยง, จะได้ไม่"],
+  ["良好","liánghǎo","ดี, เป็นที่น่าพอใจ"],
+  ["优良","yōuliáng","ดีเยี่ยม, ยอดเยี่ยม"],
+  ["改良","gǎiliáng","ปรับปรุง, แก้ไข, ปฏิรูป"],
+  ["奖学金","jiǎngxuéjīn","ทุนการศึกษา"],
+  ["金属","jīnshǔ","โลหะ"],
+  ["合金","héjīn","โลหะผสม"],
+  ["奖金","jiǎngjīn","เงินรางวัล, โบนัส"],
+  ["金鱼","jīnyú","ปลาทอง"],
+  ["冶金","yějīn","โลหะวิทยา, อุตสาหกรรมถลุงและหลอมโลหะ"],
+  ["资金","zījīn","เงินทุน, กองทุน"],
+  ["改革","gǎigé","ปฏิรูป, ปรับปรุง"],
+  ["革命","gémìng","การปฏิวัติ, ปฏิวัติ"],
+  ["变革","biàngé","ปฏิรูป, เปลี่ยนแปลง, การเปลี่ยนแปลง"],
+  ["革新","géxīn","ปฏิรูป, นวัตกรรม, การปรับปรุงใหม่"],
+  ["临时","línshí","ชั่วคราว"],
+  ["光临","guānglín","ให้เกียรติมา, มาเยือน"],
+  ["面临","miànlín","เผชิญหน้า, ประสบ"],
+  ["抽象","chōuxiàng","นามธรรม"],
+  ["对象","duìxiàng","เป้าหมาย, วัตถุ, คู่รัก"],
+  ["气象","qìxiàng","อุตุนิยมวิทยา, บรรยากาศ, ปรากฏการณ์"],
+  ["现象","xiànxiàng","ปรากฏการณ์"],
+  ["想象","xiǎngxiàng","จินตนาการ, นึกภาพ"],
+  ["形象","xíngxiàng","ภาพลักษณ์, รูปแบบ, รูปร่าง"],
+  ["印象","yìnxiàng","ความประทับใจ"],
+  ["景象","jǐngxiàng","ทิวทัศน์, ภาพ, ฉาก"],
+  ["象征","xiàngzhēng","สัญลักษณ์, เป็นสัญลักษณ์"]
+];
+
+let deck = [], idx = 0, ok = 0, no = 0, missed = [];
+
+const $ = id => document.getElementById(id);
+
+function shuffle(a){const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[b[i],b[j]]=[b[j],b[i]]}return b}
+
+function restart(rand){
+  deck = rand ? shuffle(WORDS) : WORDS.slice();
+  idx = 0; ok = 0; no = 0; missed = [];
+  $("done").classList.add("hidden");
+  $("study").classList.remove("hidden");
+  render();
+}
+
+function render(){
+  if(idx >= deck.length) return finish();
+  const [h,p,t] = deck[idx];
+  $("card").classList.remove("flipped");
+  setTimeout(()=>{
+    $("pinyin").textContent = p;
+    $("thai").textContent   = t;
+    $("hanzi").textContent  = h;
+    $("hanziSub").textContent = p;
+  }, 120);
+  $("counter").textContent = (idx+1) + " / " + deck.length;
+  $("progress").style.width = (idx/deck.length*100) + "%";
+}
+
+function flip(){ $("card").classList.toggle("flipped") }
+$("card").onclick = flip;
+
+function answer(good){
+  good ? ok++ : (no++, missed.push(deck[idx]));
+  idx++;
+  render();
+}
+
+function finish(){
+  $("study").classList.add("hidden");
+  $("done").classList.remove("hidden");
+  $("counter").textContent = deck.length + " / " + deck.length;
+  $("progress").style.width = "100%";
+  $("sOk").textContent = ok;
+  $("sNo").textContent = no;
+  $("againBtn").style.display = missed.length ? "block" : "none";
+}
+
+function reviewMissed(){
+  deck = shuffle(missed);
+  idx = 0; ok = 0; no = 0; missed = [];
+  $("done").classList.add("hidden");
+  $("study").classList.remove("hidden");
+  render();
+}
+
+document.addEventListener("keydown", e => {
+  if($("study").classList.contains("hidden")) return;
+  if(e.code === "Space"){ e.preventDefault(); flip() }
+  if(e.code === "ArrowRight") answer(true);
+  if(e.code === "ArrowLeft")  answer(false);
+});
+
+restart(true);
+</script>
+</body>
+</html>
